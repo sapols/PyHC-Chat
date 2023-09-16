@@ -29,5 +29,5 @@ Explore and ask questions about the [Python in Heliophysics Community](https://p
 - Likewise, responses can be slow because of delays in both querying OpenAI's API and retrieving from the vector store, especially when the helper bots are doing lots of heavy lifting.
 - Vector store retrieval doesn't always get the necessary context, so sometimes the model gives responses like _"I can't answer that question based on the provided documents."_
 - Chat history length is not intelligently managed yet (that's a TODO), so messages can sometimes exceed the model's max token limit which results in errors. 
-- PyHC-Chat is currently only designed discuss PyHC itself and the 7 core packages. 
+- PyHC-Chat is currently only designed to discuss PyHC itself and the seven core packages. 
     - GPT-4 has (outdated) knowledge of other PyHC packages baked into its training data, so it may answer some questions about other packages, but results will vary.
