@@ -18,7 +18,7 @@ You have a specific role in an intricate system: to intelligently allocate and d
 
 1. **Inputs to Examine**:
    - The chat history of the session.
-   - The latest user prompt, which is related to the following Python packages (that you are already somewhat familiar with): {', '.join(self.repos_to_prompt)}.
+   - The latest user prompt, which should only be related to the following Python packages (that you are already familiar with): {', '.join(self.repos_to_prompt)}.
 
 2. **Craft Questions**:
    - For each of those packages ({', '.join(self.repos_to_prompt)}), formulate a concise, targeted question for the package's helper bot. The goal of this question should be to gather the context needed to accurately address the user's last prompt.
