@@ -16,7 +16,7 @@ Explore and ask questions about the [Python in Heliophysics Community](https://p
 3. Ask your questions! Type `exit()` to quit
 
 ## Key Features
-- Has up-to-date knowledge of PyHC and its core packages, facilitated by context retrieval from a DeepLake vector store
+- Has up-to-date knowledge of PyHC and its core packages, facilitated by context retrieval from a DeepLake vector store (this is why an Activeloop token is required)
 - Generates detailed answers to user queries based on package repositories' contents
 - Spawns helper bots to determine which repos are relevant to the user's prompts and what information should be retrieved from the vector store
 - Vector store can be either online or local to your machine
