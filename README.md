@@ -6,8 +6,8 @@ Explore and ask questions about the [Python in Heliophysics Community](https://p
 
 ## Prerequisites
 
-- OpenAI API key (set in the environment variable `OPENAI_API_KEY`)
-- Activeloop token (set in the environment variable `ACTIVELOOP_TOKEN`)
+- OpenAI API key, set in the environment variable `OPENAI_API_KEY`
+- Activeloop token, set in the environment variable `ACTIVELOOP_TOKEN` (get one [here](https://docs.activeloop.ai/storage-and-credentials/user-authentication#authentication-in-programmatic-interfaces))
 
 ## Usage
 1. Set the environment variables `OPENAI_API_KEY` and `ACTIVELOOP_TOKEN`
