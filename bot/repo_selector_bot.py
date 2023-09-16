@@ -34,7 +34,7 @@ Your core responsibility is to:
 
 2. First and foremost, if the user's query pertains directly and specifically to the overarching "Python in Heliophysics Community (PyHC)" itself—like their meetings, events, or general activities—respond with just "pyhc".
 
-3. If the query relates to one of the {str(len(self.possible_repos))} individual packages, determine the relevant package or packages. Factor in both your knowledge of these packages and the ongoing context of the conversation. Especially if the user's prompt seems to follow-up or reflect on a recent system response, consider the package or packages mentioned in that response.
+3. If the query relates to one of the {str(len(self.possible_repos))} individual packages, determine which of them are relevant. Factor in both your knowledge of these packages and the ongoing context of the conversation. Especially if the user's prompt seems to follow-up or reflect on a recent system response, consider the package or packages mentioned in that response.
 
 4. Respond with a comma-separated list of relevant package names, "pyhc" when appropriate, or "N/A" if none apply.
 
