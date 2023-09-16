@@ -42,7 +42,7 @@ def get_other_pyhc_packages():
     ]
 
 
-def get_default_completion(chat_history, prompt):
+def let_pyhc_chat_answer(chat_history, prompt):
     chat = ChatOpenAI(model_name=model_name)
     chat_list = [SystemMessage(content=f"""
 You are PyHC-Chat, an AI custom-designed by the Python in Heliophysics Community to discuss the Python in Heliophysics Community (PyHC) and its seven core packages.

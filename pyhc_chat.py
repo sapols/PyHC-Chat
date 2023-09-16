@@ -6,7 +6,7 @@ import sys
 import threading
 from contextlib import contextmanager
 from config import WHITE, GREEN, BLUE, RED, RESET_COLOR
-from bot.default_bot import condense_answers, get_default_completion
+from bot.default_bot import condense_answers, let_pyhc_chat_answer
 from bot.helper_bot import HelperBot
 from bot.pyhc_bots import *
 from bot.repo_selector_bot import RepoSelectorBot
@@ -122,7 +122,7 @@ class PyhcChat:
 
     def chat_without_vector_store(self, user_prompt):
         # Let model answer without vector store retrieval
-        return get_default_completion(self.chat_history, user_prompt)
+        return let_pyhc_chat_answer(self.chat_history, user_prompt)
 
     def chat_with_one_repo(self, user_prompt, repo):
         # Chatting with just one repo
