@@ -1,4 +1,5 @@
 # pyhc_chat.py
+import argparse
 import os
 import time
 import sys
@@ -154,4 +155,13 @@ class PyhcChat:
 
 
 if __name__ == "__main__":
-    PyhcChat(use_local_vector_store=True, verbose=True).chat()
+    parser = argparse.ArgumentParser(description='Chat about PyHC and its core packages with PyHC-Chat.')
+
+    parser.add_argument('-o', '--online_vector_store', action='store_true',
+                        help='Flag to use an online vector store. Default is to use a local vector store.')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Flag for verbose mode. Default is False.')
+    args = parser.parse_args()
+
+    use_local_vector_store = not args.online_vector_store
+    PyhcChat(use_local_vector_store=use_local_vector_store, verbose=args.verbose).chat()
