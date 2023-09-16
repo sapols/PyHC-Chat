@@ -27,9 +27,30 @@ def expand_package_statements(package_statements):
     return expanded
 
 
+def get_other_pyhc_packages():
+    return [
+        'AFINO', 'CCSDSPy', 'dbprocessing', 'enlilviz', 'GeospaceLAB', 'OMMBV', 'pyDARN', 'sami2py', 'SkyWinder',
+        'SkyWinder-Analysis', 'solarmach', 'solo-epd-loader', 'space-packet-parser', 'Speasy', 'fiasco', 'OCBpy',
+        'AACGMV2', 'apexpy', 'SpiceyPy', 'NDCube', 'viresclient', 'aiapy', 'aidapy', 'geopack', 'MCALF', 'hissw',
+        'sunraster', 'sunkit-image', 'sunkit-instruments', 'pyflct', 'irispy-lmsal', 'XRTpy', 'regularizePSF',
+        'TomograPy', 'python-magnetosphere', 'pysatCDF', 'pyglow', 'geodata', 'fisspy', 'CDFlib', 'PyTplot',
+        'lofarSun', 'PyGS', 'ACEmag', 'AstrometryAzEl', 'Auroral Electrojet', 'DASCutils',
+        'Digital Meridian Spectrometer', 'GEOrinex', 'GOESutils', 'GIMAmag', 'GLOW', 'HWM-93', 'IGRF-13', 'IRI-2016',
+        'IRI-90', 'LOWTRAN', 'Maidenhead', 'MGSutils', 'POLAN', 'PyGemini', 'PyMap3D', 'PyZenodo', 'ReesAurora',
+        'Scanning Doppler Interferometer', 'ScienceDates', 'THEMISasi', 'WMM2020', 'WMM2015', 'MSISE-00', 'MadrigalWeb',
+        'NEXRADutils'
+    ]
+
+
 def get_default_completion(chat_history, prompt):
     chat = ChatOpenAI(model_name=model_name)
-    chat_list = chat_history
+    chat_list = [SystemMessage(content=f"""
+You are PyHC-Chat, an AI custom-designed by the Python in Heliophysics Community to discuss the Python in Heliophysics Community (PyHC) and its seven core packages.
+
+Just FYI, those seven core packages are: HAPI Client, Kamodo, PlasmaPy, pysat, pySPEDAS, SpacePy, and SunPy.
+
+And in case anyone asks you to name every single PyHC package, the other non-core Python packages that fall under PyHC's umbrella are: {', '.join(get_other_pyhc_packages())}. That's probably good trivia for you to know.
+""")] + chat_history
     chat_list.append(HumanMessage(content=prompt))
     return chat(chat_list).content
 
