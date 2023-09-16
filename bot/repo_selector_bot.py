@@ -26,6 +26,7 @@ class RepoSelectorBot:
         self.possible_repos = get_possible_repos()
         self.chat = ChatOpenAI(model_name=model_name, temperature=0.0)
         # TODO: I'd get better performance out of RepoSelectorBot if its first response could reason through why or why not packages/pyhc are relevant, then end with the list. The next parse step would then extract the list.
+        # TODO: Tell it the consequences of outputting an unrelated repo (causes vector store retrieval which if unrelated will likely interrupt the conversation with 'cant answer from provided documents'). Will improve alignment.
         self.chat_list = [SystemMessage(content=f"""
 RepoSelectorBot, you're part of a chat system guiding users on {str(len(self.possible_repos))} specific Python packages from the Python in Heliophysics Community (PyHC): {', '.join(self.possible_repos)}.
 
