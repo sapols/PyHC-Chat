@@ -45,7 +45,7 @@ class PyhcChat:
                     response = self.chat_without_vector_store(user_prompt)
                 elif len(relevant_repos) > 1:
                     # Retrieve from multiple vector store datasets
-                    response = self.chat_with_vector_store(user_prompt, relevant_repos)
+                    response = self.chat_with_multiple_repos(user_prompt, relevant_repos)
                 else:
                     # Retrieve from one vector store dataset
                     response = self.chat_with_one_repo(user_prompt, relevant_repos[0])
@@ -140,7 +140,7 @@ class PyhcChat:
         return let_pyhc_chat_answer(self.chat_history, user_prompt)
 
     def chat_with_one_repo(self, user_prompt, repo):
-        # Chatting with just one repo
+        # Chat with one repo using vector store retrieval
         qa = self.bots[repo].get_qa_chain()
         # Change "Thinking..." animation to "Searching {repo} contents..."
         self.stop_waiting_animation()
@@ -154,8 +154,8 @@ class PyhcChat:
         context = {repo: result['answer']}
         return answer_with_context(user_prompt, context)
 
-    def chat_with_vector_store(self, user_prompt, repos):
-        # Chatting with potentially multiple repos using vector store retrieval
+    def chat_with_multiple_repos(self, user_prompt, repos):
+        # Chat with potentially multiple repos using vector store retrieval
         repo_questions = RepoPrompterBot(repos).formulate_repo_questions(self.chat_history, user_prompt)
         if self.verbose:
             print(f"{BLUE}\nREPO QUESTION(S)")
