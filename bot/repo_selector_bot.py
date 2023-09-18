@@ -9,7 +9,7 @@ from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.output_parsers import CommaSeparatedListOutputParser
 
 
-def get_possible_repos():
+def get_possible_packages():
     possible_repos = []
     # Iterate over all items in the pyhc_bots' module dictionary
     for name, obj in globals().items():
@@ -21,25 +21,37 @@ def get_possible_repos():
     return possible_repos
 
 
+def expand_list(possible_packages):
+    return "\n".join([f"- {package} (from the `{package}` GitHub repo)" for package in possible_packages])
+
+
 class RepoSelectorBot:
     def __init__(self):
-        self.possible_repos = get_possible_repos()
+        self.possible_packages = get_possible_packages()
         self.chat = ChatOpenAI(model_name=model_name, temperature=0.0)
-        # TODO: I'd get better performance out of RepoSelectorBot if its first response could reason through why or why not packages/pyhc are relevant, then end with the list. The next parse step would then extract the list.
-        # TODO: Tell it the consequences of outputting an unrelated repo (causes vector store retrieval which if unrelated will likely interrupt the conversation with 'cant answer from provided documents'). Will improve alignment.
         self.chat_list = [SystemMessage(content=f"""
-RepoSelectorBot, you're part of a chat system guiding users on {str(len(self.possible_repos))} specific Python packages from the Python in Heliophysics Community (PyHC): {', '.join(self.possible_repos)}.
+You are RepoSelectorBot, an integral component of the PyHC-Chat system designed by the Python in Heliophysics Community (PyHC) to answer questions about PyHC and its {str(len(self.possible_packages))} core Python packages. 
 
-Your core responsibility is to:
-1. Continually observe the dialogue between the user and the system.
+PyHC-Chat is powered by OpenAI's GPT model, which inherently knows about PyHC and the core packages. However, its knowledge has a cutoff in 2021, making some of its information outdated. To compensate, PyHC-Chat leverages vector store retrieval to provide users with the most recent information from these packages and PyHC's overarching activities.
 
-2. First and foremost, if the user's query pertains directly and specifically to the overarching "Python in Heliophysics Community (PyHC)" itself—like their meetings, events, or general activities—respond with just "pyhc".
+Your critical assignment is:
 
-3. If the query relates to one of the {str(len(self.possible_repos))} individual packages, determine which of them are relevant. Factor in both your knowledge of these packages and the ongoing context of the conversation. Especially if the user's prompt seems to follow-up or reflect on a recent system response, consider the package or packages mentioned in that response.
+1. Understand the Datasets: The vector store contains datasets from the latest versions of GitHub repositories for each package and the PyHC website's source files. The dataset names are:
+{expand_list(self.possible_packages)}
+- pyhc (from the PyHC website's GitHub repo)
 
-4. Respond with a comma-separated list of relevant package names, "pyhc" when appropriate, or "N/A" if none apply.
+2. Monitor the Dialogue: Continuously monitor the dialogue between the user and the PyHC-Chat system. Factor in your intrinsic knowledge of these packages and the ongoing context of the conversation.
 
-Accuracy is paramount; subsequent system actions rely on your decisions.
+3. Determine Retrieval Needs:
+- If a user's question pertains directly to the overarching Python in Heliophysics Community (PyHC) itself—like their meetings, events, or general activities—respond with "pyhc".
+- If the user's query might benefit from the latest source code or documentation of one or more of the seven packages, decide which datasets are necessary.
+
+4. Decide & Understand the Impacts: Your decisions are critical. Responding with dataset names triggers vector store retrieval for each dataset, which:
+- Adds delay to the system's response.
+- Risks breaking the seamless chat experience if retrieved info doesn't align with the user's query.
+- Is essential for ensuring the user receives up-to-date information.
+
+Provide a comma-separated list of relevant dataset names, or "N/A" if vector store retrieval isn't deemed necessary. Strive for a balance: minimize retrievals for a seamless experience but ensure accuracy and up-to-dateness when needed.
 """)]
 
     def determine_relevant_repos(self, chat_history, prompt) -> List[str]:
@@ -47,7 +59,7 @@ Accuracy is paramount; subsequent system actions rely on your decisions.
         convo = self.chat_list + chat_history
         convo.append(HumanMessage(content=prompt))
         answer = self.chat(convo).content
-        relevant_repos_list = self.parse_output_list(answer, self.possible_repos)
+        relevant_repos_list = self.parse_output_list(answer, self.possible_packages)
         return relevant_repos_list
 
     def parse_output_list(self, selector_response, possible_repos) -> List[str]:
