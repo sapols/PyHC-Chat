@@ -4,23 +4,46 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
 
-def condense_answers(prompt, package_statements):
-    chat = ChatOpenAI(model_name=model_name)
-    chat_list = [HumanMessage(content=f"""
-I need you to condense multiple statements related to a question I asked into one cogent answer. The question I asked was:
+def pyhc_chat_system_message():  # TODO: Programmatically get names of (and number of) core PyHC packages?
+    return SystemMessage(content=f"""
+You are PyHC-Chat, an AI custom-designed by the Python in Heliophysics Community (PyHC) to discuss PyHC and its seven core packages.
 
+Just FYI, those seven core packages are: HAPI Client, Kamodo, PlasmaPy, pysat, pySPEDAS, SpacePy, and SunPy.
+
+You are powered by OpenAI's {model_name} model, which inherently knows about PyHC and the core packages. However, its knowledge has a cutoff in 2021, making some of its information outdated. To compensate, PyHC-Chat leverages vector store retrieval to provide users with the most recent information from these packages and PyHC's overarching activities (vector store contains embeddings of current GitHub repo files).
+
+And in case the user asks you to name every single PyHC package, the other non-core Python packages that fall under PyHC's umbrella are: {', '.join(get_other_pyhc_packages())}. That's probably good trivia for you to know.
+""")
+
+
+def let_pyhc_chat_answer(chat_history, prompt):
+    # The main function to get PyHC-Chat's default response to a user's prompt (without context from the vector store)
+    chat = ChatOpenAI(model_name=model_name)
+    chat_list = [pyhc_chat_system_message()] + chat_history
+    chat_list.append(HumanMessage(content=prompt))
+    return chat(chat_list).content
+
+
+def answer_with_context(prompt, repo_statements):  # TODO: give it the chat_history too? Maybe only 5 most recent messages?
+    # The main function to incorporate context from the vector store into PyHC-Chat's response to a user's prompt
+    chat = ChatOpenAI(model_name=model_name)
+    chat_list = [pyhc_chat_system_message()] + [HumanMessage(content=f"""
+To best address the user's inquiry, use the information provided below which was retrieved from the vector store:
+
+User's inquiry:
 "{prompt}"
 
-Use the following statements as context to formulate a final answer to my question (without directly referencing the fact that your final answer was pieced together from the statements):
+Relevant details from the vector store about the associated repo(s):
+--
+{expand_statements(repo_statements)}
+--
 
---
-{expand_package_statements(package_statements)}
---
+If any statements indicate a lack of specific information, integrate that understanding into your final response without directly quoting those statements. Strive to offer an informative and seamless answer, even if some parts of the inquiry couldn't be fully addressed based on the available context.
 """)]
     return chat(chat_list).content
 
 
-def expand_package_statements(package_statements):
+def expand_statements(package_statements):
     expanded = ""
     for i, (package, statement) in enumerate(package_statements.items(), start=1):
         expanded += f"{i}. (from {package}): `{statement}`\n\n"
@@ -40,19 +63,6 @@ def get_other_pyhc_packages():
         'Scanning Doppler Interferometer', 'ScienceDates', 'THEMISasi', 'WMM2020', 'WMM2015', 'MSISE-00', 'MadrigalWeb',
         'NEXRADutils'
     ]
-
-
-def let_pyhc_chat_answer(chat_history, prompt):
-    chat = ChatOpenAI(model_name=model_name)
-    chat_list = [SystemMessage(content=f"""
-You are PyHC-Chat, an AI custom-designed by the Python in Heliophysics Community to discuss the Python in Heliophysics Community (PyHC) and its seven core packages.
-
-Just FYI, those seven core packages are: HAPI Client, Kamodo, PlasmaPy, pysat, pySPEDAS, SpacePy, and SunPy.
-
-And in case anyone asks you to name every single PyHC package, the other non-core Python packages that fall under PyHC's umbrella are: {', '.join(get_other_pyhc_packages())}. That's probably good trivia for you to know.
-""")] + chat_history
-    chat_list.append(HumanMessage(content=prompt))
-    return chat(chat_list).content
 
 
 class DefaultBot:

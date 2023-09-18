@@ -1,12 +1,12 @@
 # pyhc_chat.py
 import argparse
 import os
-import time
 import sys
+import time
 import threading
 from contextlib import contextmanager
 from config import WHITE, GREEN, BLUE, RED, RESET_COLOR
-from bot.default_bot import condense_answers, let_pyhc_chat_answer
+from bot.default_bot import answer_with_context, let_pyhc_chat_answer
 from bot.helper_bot import HelperBot
 from bot.pyhc_bots import *
 from bot.repo_selector_bot import RepoSelectorBot
@@ -21,6 +21,8 @@ class PyhcChat:
         self.verbose = verbose
         self.bots = self.load_bots()
         self.chat_history = []
+        self.stop_event = threading.Event()
+        self.t = None
 
     def chat(self):
         print("\n=====================\nWELCOME TO PYHC-CHAT!\n=====================")
@@ -33,23 +35,23 @@ class PyhcChat:
                     break
 
                 # Start the animated "Thinking..." in a separate thread
-                stop_event = threading.Event()
-                t = threading.Thread(target=self.animate_thinking, args=(stop_event,))
-                t.start()
+                self.start_waiting_animation()
 
                 # Get PyHC-Chat's response
                 relevant_repos = self.get_relevant_repos(user_prompt)
 
                 if len(relevant_repos) == 1 and relevant_repos[0] == "N/A":
+                    # No vector store retrieval
                     response = self.chat_without_vector_store(user_prompt)
                 elif len(relevant_repos) > 1:
-                    response = self.chat_with_multiple_repos(user_prompt, relevant_repos)
+                    # Retrieve from multiple vector store datasets
+                    response = self.chat_with_vector_store(user_prompt, relevant_repos)
                 else:
+                    # Retrieve from one vector store dataset
                     response = self.chat_with_one_repo(user_prompt, relevant_repos[0])
 
                 # Stop the "Thinking..." animation
-                stop_event.set()
-                t.join()
+                self.stop_waiting_animation()
 
                 # Display PyHC-Chat's response
                 print(f"{GREEN}\nANSWER\n{response}{RESET_COLOR}\n")
@@ -57,21 +59,34 @@ class PyhcChat:
                 self.chat_history.append(AIMessage(content=response))
             except Exception as e:
                 # Stop the "Thinking..." animation then display the error and move on
-                stop_event.set()
-                t.join()
+                self.stop_waiting_animation()
                 print(f"{RED}An error occurred: {e}{RESET_COLOR}")
+                raise e
 
     # -------------- Helper Functions ----------------------------------------------------------------------------------
 
     @staticmethod
-    def animate_thinking(event):
+    def animate_waiting(event, repo_name=None):
         dots = 1
         while not event.is_set():
             dots = (dots % 3) + 1  # cycles through 1, 2, 3 dots
-            sys.stdout.write('\r' + WHITE + 'Thinking' + '.' * dots + ' ' * (3 - dots) + RESET_COLOR)
+            if repo_name:
+                sys.stdout.write(
+                    '\r' + WHITE + f'Searching {repo_name} contents' + '.' * dots + ' ' * (3 - dots) + RESET_COLOR)
+            else:
+                sys.stdout.write('\r' + WHITE + 'Thinking' + '.' * dots + ' ' * (3 - dots) + RESET_COLOR)
             sys.stdout.flush()
             time.sleep(1)
-        sys.stdout.write('\r' + ' ' * 15 + '\r')  # Clear the line
+        sys.stdout.write('\r' + ' ' * 50 + '\r')  # Clear the line
+
+    def start_waiting_animation(self, repo_name=None):
+        self.stop_event = threading.Event()
+        self.t = threading.Thread(target=self.animate_waiting, args=(self.stop_event, repo_name))
+        self.t.start()
+
+    def stop_waiting_animation(self):
+        self.stop_event.set()
+        self.t.join()
 
     @staticmethod
     def get_pyhc_bot_classes():
@@ -127,28 +142,46 @@ class PyhcChat:
     def chat_with_one_repo(self, user_prompt, repo):
         # Chatting with just one repo
         qa = self.bots[repo].get_qa_chain()
+        # Change "Thinking..." animation to "Searching {repo} contents..."
+        self.stop_waiting_animation()
+        self.start_waiting_animation(repo)
+        # Get helper bot answer
         result = qa({"question": user_prompt, "chat_history": self.chat_history})
-        return result['answer']
+        # Stop animation
+        self.stop_waiting_animation()
+        # Start "Thinking..." animation one last time
+        self.start_waiting_animation()
+        context = {repo: result['answer']}
+        return answer_with_context(user_prompt, context)
 
-    def chat_with_multiple_repos(self, user_prompt, repos):
-        # Chatting with multiple repos
-        package_questions = RepoPrompterBot(repos).formulate_package_questions(self.chat_history, user_prompt)
+    def chat_with_vector_store(self, user_prompt, repos):
+        # Chatting with potentially multiple repos using vector store retrieval
+        repo_questions = RepoPrompterBot(repos).formulate_repo_questions(self.chat_history, user_prompt)
         if self.verbose:
-            print(f"{BLUE}\nPACKAGE QUESTIONS")
-            for package, question in package_questions.items():
-                print(f"{package}: \"{question}\"\n")
+            print(f"{BLUE}\nREPO QUESTION(S)")
+            for repo, question in repo_questions.items():
+                print(f"{repo}: \"{question}\"\n")
             print(f"{RESET_COLOR}")
-        package_answers = {}
-        for package, package_question in package_questions.items():
-            qa = self.bots[package].get_qa_chain()
-            result = qa({"question": package_question, "chat_history": self.chat_history})  # TODO: does it need chat_history? Or should we one-shot prompt?
-            package_answers[package] = result['answer']
+        repo_answers = {}
+        for repo, repo_question in repo_questions.items():
+            qa = self.bots[repo].get_qa_chain()
+            # Change "Thinking..." animation to "Searching {repo} contents..."
+            self.stop_waiting_animation()
+            self.start_waiting_animation(repo)
+            # Get helper bot answer
+            result = qa({"question": repo_question, "chat_history": self.chat_history})  # TODO: does it need chat_history? Or should we one-shot prompt?
+            # Stop animation
+            self.stop_waiting_animation()
+            # Store answer
+            repo_answers[repo] = result['answer']
         if self.verbose:
-            print(f"{BLUE}\nPACKAGE ANSWERS")
-            for package, answer in package_answers.items():
-                print(f"{package}: \n\"{answer}\"\n")
+            print(f"{BLUE}\nREPO ANSWER(S)")
+            for repo, answer in repo_answers.items():
+                print(f"{repo}: \n\"{answer}\"\n")
             print(f"{RESET_COLOR}")
-        return condense_answers(user_prompt, package_answers)
+        # Start "Thinking..." animation one last time
+        self.start_waiting_animation()
+        return answer_with_context(user_prompt, repo_answers)
 
 
 # -------------- Main Execution ----------------------------------------------------------------------------------------
@@ -161,7 +194,8 @@ if __name__ == "__main__":
                         help='Flag to use an online vector store. Default is to use a local vector store.')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Flag for verbose mode. Default is False.')
+    # TODO: add a flag to optionally display documents retrieved from the vector store
     args = parser.parse_args()
 
     use_local_vector_store = not args.online_vector_store
-    PyhcChat(use_local_vector_store=use_local_vector_store, verbose=args.verbose).chat()
+    PyhcChat(use_local_vector_store, args.verbose).chat()
