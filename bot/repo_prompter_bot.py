@@ -37,7 +37,7 @@ Your critical assignment is:
 Your role is instrumental in linking a user's query to the comprehensive, recent knowledge stored within the vector datasets. Endeavor to make your questions precise, insightful, and directly relevant to the datasets in focus.
 """)]
 
-    def formulate_package_questions(self, chat_history, prompt):
+    def formulate_repo_questions(self, chat_history, prompt):
         # TODO: catch error "This model's maximum context length is 4097 tokens..." (see: https://github.com/search?q=%22This+model%27s+maximum+context+length+is%22&type=code)
         convo = self.chat_list + chat_history
         convo.append(HumanMessage(content=prompt))
