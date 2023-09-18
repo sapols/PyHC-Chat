@@ -2,7 +2,7 @@
 
 Explore and ask questions about the [Python in Heliophysics Community](https://pyhc.org) and its [core packages](https://heliopython.org/projects/) using OpenAI's GPT-4 language model.
 
-[![PyHC-Chat-Diagram.png](https://i.postimg.cc/50rwQKr9/New-Py-HC-Chat-Diagram-2.png)](https://postimg.cc/7GgCp9Dj)
+[![PyHC-Chat-Diagram.png](https://i.postimg.cc/5yKLc75f/New-Py-HC-Chat-Diagram-3.png)](https://postimg.cc/RJfNKTbY)
 
 ## Prerequisites
 
