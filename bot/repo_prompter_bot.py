@@ -67,7 +67,7 @@ Here's the poorly formatted string:
 
     @staticmethod
     def parse_json(output, model):
-        for i in range(5):
+        for i in range(3):
             try:
                 if "```json" not in output:
                     raise RuntimeError(
@@ -81,4 +81,4 @@ Here's the poorly formatted string:
                 output = model(output)
             except RuntimeError:
                 output = model(output)
-        raise ValueError("Could not parse output to JSON after 5 attempts. Last output: " + output)
+        raise ValueError("Could not parse output to JSON after 3 attempts. Last output: " + output)
