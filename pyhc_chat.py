@@ -19,10 +19,10 @@ class PyHCChat:
     def __init__(self, use_local_vector_store=True, verbose=False):
         self.use_local_vector_store = use_local_vector_store
         self.verbose = verbose
-        self.bots = self.load_bots()
+        self.bots = self.load_helper_bots()
         self.chat_history = []
         self.stop_event = threading.Event()
-        self.t = None
+        self.thread = None
 
     def chat(self):
         print("\n=====================\nWELCOME TO PYHC-CHAT!\n=====================")
@@ -66,9 +66,10 @@ class PyHCChat:
 
     @staticmethod
     def animate_waiting(event, repo_name=None):
+        # Animate the dots in "Thinking..." / "Searching {repo_name} contents..."
         dots = 1
         while not event.is_set():
-            dots = (dots % 3) + 1  # cycles through 1, 2, 3 dots
+            dots = (dots % 3) + 1  # Cycle through 1, 2, 3 dots
             if repo_name:
                 sys.stdout.write(
                     '\r' + WHITE + f'Searching {repo_name} contents' + '.' * dots + ' ' * (3 - dots) + RESET_COLOR)
@@ -80,36 +81,27 @@ class PyHCChat:
 
     def start_waiting_animation(self, repo_name=None):
         self.stop_event = threading.Event()
-        self.t = threading.Thread(target=self.animate_waiting, args=(self.stop_event, repo_name))
-        self.t.start()
+        self.thread = threading.Thread(target=self.animate_waiting, args=(self.stop_event, repo_name))
+        self.thread.start()
 
     def stop_waiting_animation(self):
         self.stop_event.set()
-        self.t.join()
+        self.thread.join()
 
     @staticmethod
-    def get_pyhc_bot_classes():
-        # List to store the bot class objects
+    def get_pyhc_bot_info():
+        # Get the PyHC package helper bots' class objects and names from `bot.pyhc_bots`
         bot_class_objects = []
-        # Iterate over all items in the current module's dictionary
-        for name, obj in globals().items():
-            # Check if the item is a class, a subclass of HelperBot, and not HelperBot itself
-            if isinstance(obj, type) and issubclass(obj, HelperBot) and obj != HelperBot:
-                bot_class_objects.append(obj)
-        return bot_class_objects
-
-    @staticmethod
-    def get_pyhc_bot_names():
-        # List to store the bot names
         bot_names = []
         # Iterate over all items in the current module's dictionary
         for name, obj in globals().items():
             # Check if the item is a class, a subclass of HelperBot, and not HelperBot itself
             if isinstance(obj, type) and issubclass(obj, HelperBot) and obj != HelperBot:
+                bot_class_objects.append(obj)
                 bot_names.append(obj.REPO_NAME)
-        return bot_names
+        return bot_class_objects, bot_names
 
-    def load_bots(self):
+    def load_helper_bots(self):
         @contextmanager
         def suppress_stdout():
             # Hide the DeepLake print statements on startup
@@ -120,8 +112,8 @@ class PyHCChat:
                     yield
                 finally:
                     sys.stdout = old_stdout
-        bot_classes = self.get_pyhc_bot_classes()
-        bot_names = self.get_pyhc_bot_names()
+        # Load every PyHC package helper bot
+        bot_classes, bot_names = self.get_pyhc_bot_info()
         with suppress_stdout():
             bots = {}
             for bot_class, bot_name in tqdm(zip(bot_classes, bot_names), total=len(bot_classes), desc="Loading helper bots"):
@@ -129,13 +121,14 @@ class PyHCChat:
         return bots
 
     def get_relevant_repos(self, user_prompt):
+        # Determine which vector store datasets to reach into
         relevant_repos = RepoSelectorBot().determine_relevant_repos(self.chat_history, user_prompt)
         if self.verbose:
             print(f"{BLUE}\nRELEVANT REPO(S)\n{', '.join(relevant_repos)}{RESET_COLOR}\n")
         return relevant_repos
 
     def chat_without_vector_store(self, user_prompt):
-        # Let model answer without vector store retrieval
+        # Let the model answer without vector store retrieval
         return let_pyhc_chat_answer(self.chat_history, user_prompt)
 
     def chat_with_one_repo(self, user_prompt, repo):
