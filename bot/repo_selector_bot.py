@@ -9,25 +9,9 @@ from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.output_parsers import CommaSeparatedListOutputParser
 
 
-def get_possible_packages():
-    possible_packages = []
-    # Iterate over all items in the pyhc_bots' module dictionary
-    for name, obj in globals().items():
-        # Check if the item is a class and a subclass of HelperBot
-        if isinstance(obj, type) and issubclass(obj, HelperBot) and obj != HelperBot:
-            # Exclude "pyhc" from the list
-            if obj.REPO_NAME != "pyhc":
-                possible_packages.append(obj.REPO_NAME)
-    return possible_packages
-
-
-def expand_list(possible_packages):
-    return "\n".join([f"- {package} (from the `{package}` GitHub repo)" for package in possible_packages])
-
-
 class RepoSelectorBot:
     def __init__(self):
-        self.possible_packages = get_possible_packages()
+        self.possible_packages = self.get_possible_packages()
         self.chat = ChatOpenAI(model_name=model_name, temperature=0.0)
         self.chat_list = [SystemMessage(content=f"""
 You are RepoSelectorBot, an integral component of the PyHC-Chat system designed by the Python in Heliophysics Community (PyHC) to answer questions about PyHC and its {str(len(self.possible_packages))} core Python packages. 
@@ -37,7 +21,7 @@ PyHC-Chat is powered by OpenAI's GPT model, which inherently knows about PyHC an
 Your critical assignment is:
 
 1. Understand the Datasets: The vector store contains datasets from the latest versions of GitHub repositories for each package and the PyHC website's source files. The dataset names are:
-{expand_list(self.possible_packages)}
+{self.expand_list(self.possible_packages)}
 - pyhc (from the PyHC website's GitHub repo)
 
 2. Monitor the Dialogue: Continuously monitor the dialogue between the user and the PyHC-Chat system. Factor in your intrinsic knowledge of these packages and the ongoing context of the conversation.
@@ -53,6 +37,22 @@ Your critical assignment is:
 
 Provide a comma-separated list of relevant dataset names, or "N/A" if vector store retrieval isn't deemed necessary. Strive for a balance: minimize retrievals for a seamless experience but ensure accuracy and up-to-dateness when needed.
 """)]
+
+    @staticmethod
+    def get_possible_packages():
+        possible_packages = []
+        # Iterate over all items in the pyhc_bots' module dictionary
+        for name, obj in globals().items():
+            # Check if the item is a class and a subclass of HelperBot
+            if isinstance(obj, type) and issubclass(obj, HelperBot) and obj != HelperBot:
+                # Exclude "pyhc" from the list
+                if obj.REPO_NAME != "pyhc":
+                    possible_packages.append(obj.REPO_NAME)
+        return possible_packages
+
+    @staticmethod
+    def expand_list(possible_packages):
+        return "\n".join([f"- {package} (from the `{package}` GitHub repo)" for package in possible_packages])
 
     def determine_relevant_repos(self, chat_history, prompt) -> List[str]:
         # TODO: catch error "This model's maximum context length is 4097 tokens..." (see: https://github.com/search?q=%22This+model%27s+maximum+context+length+is%22&type=code)
