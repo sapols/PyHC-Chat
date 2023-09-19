@@ -1,12 +1,10 @@
 # repo_selector_bot.py
+import re
 from typing import List
-from config import model_name
+from config import model_name, secondary_model_name
 from bot.pyhc_bots import *
-from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
-from langchain.output_parsers import CommaSeparatedListOutputParser
 
 
 class RepoSelectorBot:
@@ -40,8 +38,9 @@ Provide a comma-separated list of relevant dataset names, or "N/A" if vector sto
 
     @staticmethod
     def get_possible_packages():
+        # Get the PyHC package names from `bot.pyhc_bots`
         possible_packages = []
-        # Iterate over all items in the pyhc_bots' module dictionary
+        # Iterate over all items in the current module's dictionary
         for name, obj in globals().items():
             # Check if the item is a class and a subclass of HelperBot
             if isinstance(obj, type) and issubclass(obj, HelperBot) and obj != HelperBot:
@@ -56,49 +55,70 @@ Provide a comma-separated list of relevant dataset names, or "N/A" if vector sto
 
     def determine_relevant_repos(self, chat_history, prompt) -> List[str]:
         # TODO: catch error "This model's maximum context length is 4097 tokens..." (see: https://github.com/search?q=%22This+model%27s+maximum+context+length+is%22&type=code)
-        convo = self.chat_list + chat_history
-        convo.append(HumanMessage(content=prompt))
-        answer = self.chat(convo).content
-        relevant_repos_list = self.parse_output_list(answer, self.possible_packages)
+        convo = self.chat_list + chat_history + [HumanMessage(content=prompt)]
+        response = self.chat(convo).content
+        try:
+            relevant_repos_list = self.parse_output_list_without_gpt(response)
+        except Exception as e:
+            relevant_repos_list = self.parse_output_list_with_gpt(response)
         return relevant_repos_list
 
-    def parse_output_list(self, selector_response, possible_repos) -> List[str]:
-        for i in range(5):
+    def parse_output_list_without_gpt(self, selector_response) -> List[str]:
+        # Try to parse the response without GPT first. Handles responses like:
+        # "['hapiclient', "sunpy"]"
+        # "SunPy,,hapiclient"
+        # "sunpy, hapiclient{ }"
+        # "(sunpy), [hapiclient]"
+        # "N/A"
+        cleaned_response = re.sub(r'[\[\]"\'()' '{}]', '', selector_response)  # Remove unwanted characters
+        cleaned_response = cleaned_response.strip().lower()  # Assumes pyhc_bot REPO_NAMEs are lowercase
+        if not cleaned_response:
+            raise ValueError("Empty response after cleaning.")
+        if cleaned_response == "n/a":
+            return ["N/A"]
+        # Split by comma and filter out empty strings
+        parsed_list = [item.strip() for item in cleaned_response.split(",") if item.strip()]
+        if self.package_list_is_valid(parsed_list):
+            return parsed_list
+        else:
+            raise ValueError("Invalid list parsed without GPT.")
+
+    def parse_output_list_with_gpt(self, selector_response) -> List[str]:
+        # Try a couple times to parse the response with GPT (using secondary_model_name)
+        model = ChatOpenAI(model_name=secondary_model_name, temperature=0)
+        chat_list = [HumanMessage(content=f"""
+The following text should be a list of comma-separated names, specifically one or more of the following: `{', '.join(self.possible_packages + ['pyhc'])}` (or just `N/A`).
+However, the text may contain (1) more than just the list of names (e.g. square brackets, quotation marks, extra words/sentences), in which case it is your job to extract the list from the text, or (2) none of the names, in which case you return `N/A`. Do NOT surround your response with square brackets nor quotes. E.g. to be clear, `['hapiclient', 'sunpy']` would be an INCORRECT response while `hapiclient, sunpy` would be correct.
+
+Here is the text:
+"{selector_response}"
+
+Your response should be a list of comma separated values, e.g.: `foo, bar, baz` (or simply `N/A`).
+""")]
+        for _ in range(2):
             try:
-                comma_separated_list_parser = CommaSeparatedListOutputParser()
-                format_instructions = comma_separated_list_parser.get_format_instructions()
-                prompt = PromptTemplate(
-                    template=f"""
-The following text should be a list of comma-separated names, specifically one or more of the following: "{', '.join(possible_repos + ['pyhc'])}" (or just "N/A").
-However, the text may contain (1) more than just the list of names (e.g. square brackets, quotation marks, extra words/sentences), in which case it is your job to extract the list from the text, or (2) none of the names, in which case you return "N/A". Do NOT surround your response with square brackets. Here is the text:
-
-\"{{selector_response}}\"
-
-{{format_instructions}} (or simply "N/A"). E.g. to be clear, "['hapiclient', 'sunpy']" would be an INCORRECT response while "hapiclient, sunpy" would be correct. 
-""",
-                    input_variables=["selector_response"],
-                    partial_variables={"format_instructions": format_instructions}
-                )
-                model = OpenAI(temperature=0)
-                _in = prompt.format(selector_response=selector_response)
-                _out = model(_in)
-                parsed_list = comma_separated_list_parser.parse(_out)  # returns a list by doing `text.strip().split(", ")`
-                parsed_list = parsed_list if "N/A" not in parsed_list else ["N/A"]  # If "N/A" is an element, make it the only element
-                if self.package_list_is_valid(parsed_list, possible_repos):
+                _out = model(chat_list).content
+                parsed_list = _out.strip().split(", ")
+                parsed_list = parsed_list if "N/A" not in parsed_list else ["N/A"]  # Keep only "N/A" if it's in there
+                if self.package_list_is_valid(parsed_list):
                     return parsed_list
                 else:
-                    raise ValueError("Could not parse selector's response to List after: " + selector_response)
-            except ValueError:
-                pass  # Retry
-        raise ValueError("Could not parse selector's response to List after 5 attempts: " + selector_response)
+                    # Try parsing without GPT once more
+                    fallback_parsed_list = self.parse_output_list_without_gpt(str(parsed_list))
+                    if self.package_list_is_valid(fallback_parsed_list):
+                        return fallback_parsed_list
+                    else:
+                        raise ValueError("Could not parse selector's response to List: " + selector_response)
+            except (ValueError, RuntimeError):
+                continue  # Retry
+        raise ValueError("Could not parse selector's response to List after 2 attempts: " + selector_response)
 
-    @staticmethod
-    def package_list_is_valid(package_list, possible_packages):
+    def package_list_is_valid(self, package_list):
         if not isinstance(package_list, list):
             return False
         if len(package_list) == 1 and package_list[0] == "N/A":
             return True
         for package in package_list:
-            if not isinstance(package, str) or package not in possible_packages + ['pyhc']:
+            if not isinstance(package, str) or package not in self.possible_packages + ['pyhc']:
                 return False
         return True
