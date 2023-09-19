@@ -10,15 +10,15 @@ from langchain.output_parsers import CommaSeparatedListOutputParser
 
 
 def get_possible_packages():
-    possible_repos = []
+    possible_packages = []
     # Iterate over all items in the pyhc_bots' module dictionary
     for name, obj in globals().items():
         # Check if the item is a class and a subclass of HelperBot
         if isinstance(obj, type) and issubclass(obj, HelperBot) and obj != HelperBot:
             # Exclude "pyhc" from the list
             if obj.REPO_NAME != "pyhc":
-                possible_repos.append(obj.REPO_NAME)
-    return possible_repos
+                possible_packages.append(obj.REPO_NAME)
+    return possible_packages
 
 
 def expand_list(possible_packages):
