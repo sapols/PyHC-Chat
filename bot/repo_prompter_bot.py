@@ -24,7 +24,7 @@ Your critical assignment is:
    - Recognize that the name(s) you've been given map to a dataset in the vector store. These datasets encapsulate vector embeddings of files from the corresponding package's GitHub repo or, in the case of 'pyhc', the source code files of PyHC's website.
 
 3. Formulate Targeted Questions for Retrieval:
-   - For the given dataset name(s) ({', '.join(self.repos_to_prompt)}), craft a concise and relevant question. This question will guide a semantic search within the vector store, aiming to retrieve the most pertinent information from the dataset in relation to the user's query. Aim for clarity and specificity, as the quality of your questions directly influences the accuracy and relevancy of the retrieved information.
+   - For the given dataset name(s) ({', '.join(self.repos_to_prompt)}), craft a concise and relevant question. This question will guide a semantic search within the vector store, aiming to retrieve the most pertinent information from the dataset in relation to the user's query.
 
 4. Structure Your Response:
    - Arrange your answers as:
@@ -33,8 +33,6 @@ Your critical assignment is:
      {{second dataset name}}: {{question for second dataset}}
      ... and so on.
      ```
-
-Your role is instrumental in linking a user's query to the comprehensive, recent knowledge stored within the vector datasets. Endeavor to make your questions precise, insightful, and directly relevant to the datasets in focus.
 """)]
 
     def formulate_repo_questions(self, chat_history, prompt):
