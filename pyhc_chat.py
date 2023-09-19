@@ -6,7 +6,7 @@ import time
 import threading
 from contextlib import contextmanager
 from config import WHITE, GREEN, BLUE, RED, RESET_COLOR
-from bot.default_bot import answer_with_context, let_pyhc_chat_answer
+from bot.pyhc_chat_bot import answer_with_context, let_pyhc_chat_answer
 from bot.helper_bot import HelperBot
 from bot.pyhc_bots import *
 from bot.repo_selector_bot import RepoSelectorBot
@@ -15,7 +15,7 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from tqdm import tqdm
 
 
-class PyhcChat:
+class PyHCChat:
     def __init__(self, use_local_vector_store=True, verbose=False):
         self.use_local_vector_store = use_local_vector_store
         self.verbose = verbose
@@ -197,4 +197,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     use_local_vector_store = not args.online_vector_store
-    PyhcChat(use_local_vector_store, args.verbose).chat()
+    PyHCChat(use_local_vector_store, args.verbose).chat()

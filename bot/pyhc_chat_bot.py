@@ -1,4 +1,4 @@
-# default_bot.py
+# pyhc_chat_bot.py
 from config import model_name
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
@@ -65,10 +65,10 @@ def get_other_pyhc_packages():
     ]
 
 
-class DefaultBot:
+class PyHCChatBot:
     def __init__(self, chat_history):
         self.chat = ChatOpenAI(model_name=model_name)
-        self.chat_list = chat_history
+        self.chat_list = [pyhc_chat_system_message()] + chat_history
 
     def get_completion(self):
         return self.chat(self.chat_list).content
