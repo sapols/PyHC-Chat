@@ -151,7 +151,7 @@ class PyHCChat:
         # Start "Thinking..." animation one last time
         self.start_waiting_animation()
         context = {repo: result['answer']}
-        return answer_with_context(user_prompt, context)
+        return answer_with_context(self.chat_history, user_prompt, context)
 
     def chat_with_multiple_repos(self, user_prompt, repos):
         # Chat with potentially multiple repos using vector store retrieval
@@ -180,7 +180,7 @@ class PyHCChat:
             print(f"{RESET_COLOR}")
         # Start "Thinking..." animation one last time
         self.start_waiting_animation()
-        return answer_with_context(user_prompt, repo_answers)
+        return answer_with_context(self.chat_history, user_prompt, repo_answers)
 
 
 # -------------- Main Execution ----------------------------------------------------------------------------------------

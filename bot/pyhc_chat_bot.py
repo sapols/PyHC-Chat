@@ -19,15 +19,14 @@ And in case the user asks you to name every single PyHC package, the other non-c
 def let_pyhc_chat_answer(chat_history, prompt):
     # The main function to get PyHC-Chat's default response to a user's prompt (without context from the vector store)
     chat = ChatOpenAI(model_name=model_name)
-    chat_list = [pyhc_chat_system_message()] + chat_history
-    chat_list.append(HumanMessage(content=prompt))
+    chat_list = [pyhc_chat_system_message()] + chat_history + [HumanMessage(content=prompt)]
     return chat(chat_list).content
 
 
-def answer_with_context(prompt, repo_statements):  # TODO: give it the chat_history too? Maybe only 5 most recent messages?
+def answer_with_context(chat_history, prompt, repo_statements):
     # The main function to incorporate context from the vector store into PyHC-Chat's response to a user's prompt
     chat = ChatOpenAI(model_name=model_name)
-    chat_list = [pyhc_chat_system_message()] + [HumanMessage(content=f"""
+    chat_list = [pyhc_chat_system_message()] + chat_history + [HumanMessage(content=f"""
 To best address the user's inquiry, use the information provided below which was retrieved from the vector store:
 
 User's inquiry:
