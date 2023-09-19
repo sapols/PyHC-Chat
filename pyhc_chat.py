@@ -61,7 +61,6 @@ class PyhcChat:
                 # Stop the "Thinking..." animation then display the error and move on
                 self.stop_waiting_animation()
                 print(f"{RED}An error occurred: {e}{RESET_COLOR}")
-                raise e
 
     # -------------- Helper Functions ----------------------------------------------------------------------------------
 
