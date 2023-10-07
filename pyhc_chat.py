@@ -65,23 +65,23 @@ class PyHCChat:
     # -------------- Helper Functions ----------------------------------------------------------------------------------
 
     @staticmethod
-    def animate_waiting(event, repo_name=None):
-        # Animate the dots in "Thinking..." / "Searching {repo_name} contents..."
+    def animate_waiting(event, message=None):
+        # Animate the dots in "Thinking..." / "Searching {repo_name} contents..." / "Writing response..."
         dots = 1
         while not event.is_set():
             dots = (dots % 3) + 1  # Cycle through 1, 2, 3 dots
-            if repo_name:
+            if message:
                 sys.stdout.write(
-                    '\r' + WHITE + f'Searching {repo_name} contents' + '.' * dots + ' ' * (3 - dots) + RESET_COLOR)
+                    '\r' + WHITE + message + '.' * dots + ' ' * (3 - dots) + RESET_COLOR)
             else:
                 sys.stdout.write('\r' + WHITE + 'Thinking' + '.' * dots + ' ' * (3 - dots) + RESET_COLOR)
             sys.stdout.flush()
             time.sleep(1)
         sys.stdout.write('\r' + ' ' * 50 + '\r')  # Clear the line
 
-    def start_waiting_animation(self, repo_name=None):
+    def start_waiting_animation(self, message=None):
         self.stop_event = threading.Event()
-        self.thread = threading.Thread(target=self.animate_waiting, args=(self.stop_event, repo_name))
+        self.thread = threading.Thread(target=self.animate_waiting, args=(self.stop_event, message))
         self.thread.start()
 
     def stop_waiting_animation(self):
@@ -136,13 +136,13 @@ class PyHCChat:
         qa = self.bots[repo].get_qa_chain()
         # Change "Thinking..." animation to "Searching {repo} contents..."
         self.stop_waiting_animation()
-        self.start_waiting_animation(repo)
+        self.start_waiting_animation(f'Searching {repo} contents')
         # Get helper bot answer
         result = qa({"question": user_prompt, "chat_history": self.chat_history})
         # Stop animation
         self.stop_waiting_animation()
-        # Start "Thinking..." animation one last time
-        self.start_waiting_animation()
+        # Start "Writing response..." animation
+        self.start_waiting_animation('Writing response')
         context = {repo: result['answer']}
         return answer_with_context(self.chat_history, user_prompt, context)
 
@@ -159,7 +159,7 @@ class PyHCChat:
             qa = self.bots[repo].get_qa_chain()
             # Change "Thinking..." animation to "Searching {repo} contents..."
             self.stop_waiting_animation()
-            self.start_waiting_animation(repo)
+            self.start_waiting_animation(f'Searching {repo} contents')
             # Get helper bot answer
             result = qa({"question": repo_question, "chat_history": self.chat_history})  # TODO: does it need chat_history? Or should we one-shot prompt?
             # Stop animation
@@ -171,8 +171,8 @@ class PyHCChat:
             for repo, answer in repo_answers.items():
                 print(f"{repo}: \n\"{answer}\"\n")
             print(f"{RESET_COLOR}")
-        # Start "Thinking..." animation one last time
-        self.start_waiting_animation()
+        # Start "Writing response..." animation
+        self.start_waiting_animation('Writing response')
         return answer_with_context(self.chat_history, user_prompt, repo_answers)
 
 
