@@ -3,6 +3,7 @@ import argparse
 import os
 import sys
 import time
+import signal
 import threading
 from contextlib import contextmanager
 from config import WHITE, GREEN, BLUE, RED, RESET_COLOR
@@ -23,6 +24,7 @@ class PyHCChat:
         self.chat_history = []
         self.stop_event = threading.Event()
         self.thread = None
+        signal.signal(signal.SIGINT, self.signal_handler)
 
     def chat(self):
         print("\n=====================\nWELCOME TO PYHC-CHAT!\n=====================")
@@ -30,9 +32,12 @@ class PyHCChat:
         while True:
             try:
                 # Get the user's prompt
-                user_prompt = input(f"\n{WHITE}Ask a question about PyHC or a core PyHC package (type 'exit()' to quit): {RESET_COLOR}")
+                print(f"\n{WHITE}Ask a question about PyHC or a core PyHC package (type 'exit()' to quit): ", end="")
+                user_prompt = input(f"{GREEN}")  # User's input will be green
+                print(f"{RESET_COLOR}", end="")  # Reset color back to normal
                 if user_prompt.lower() == "exit()":
-                    break
+                    print("\nExiting...")
+                    sys.exit(0)
 
                 # Start the animated "Thinking..." in a separate thread
                 self.start_waiting_animation()
@@ -54,7 +59,7 @@ class PyHCChat:
                 self.stop_waiting_animation()
 
                 # Display PyHC-Chat's response
-                print(f"{GREEN}\nANSWER\n{response}{RESET_COLOR}\n")
+                print(f"{GREEN}\nANSWER\n{WHITE}{response}{RESET_COLOR}\n")
                 self.chat_history.append(HumanMessage(content=user_prompt))
                 self.chat_history.append(AIMessage(content=response))
             except Exception as e:
@@ -87,6 +92,12 @@ class PyHCChat:
     def stop_waiting_animation(self):
         self.stop_event.set()
         self.thread.join()
+
+    @staticmethod
+    def signal_handler(sig, frame):
+        print(f"{RESET_COLOR}")  # Reset the terminal color
+        print("\nExiting...")
+        sys.exit(0)
 
     @staticmethod
     def get_pyhc_bot_info():
@@ -123,12 +134,14 @@ class PyHCChat:
     def get_relevant_repos(self, user_prompt):
         # Determine which vector store datasets to reach into
         relevant_repos = RepoSelectorBot().determine_relevant_repos(self.chat_history, user_prompt)
+        self.stop_waiting_animation()
         if self.verbose:
             print(f"{BLUE}\nRELEVANT REPO(S)\n{', '.join(relevant_repos)}{RESET_COLOR}\n")
         return relevant_repos
 
     def chat_without_vector_store(self, user_prompt):
         # Let the model answer without vector store retrieval
+        self.start_waiting_animation('Writing response')
         return let_pyhc_chat_answer(self.chat_history, user_prompt)
 
     def chat_with_one_repo(self, user_prompt, repo):
@@ -148,7 +161,9 @@ class PyHCChat:
 
     def chat_with_multiple_repos(self, user_prompt, repos):
         # Chat with potentially multiple repos using vector store retrieval
+        self.start_waiting_animation()
         repo_questions = RepoPrompterBot(repos).formulate_repo_questions(self.chat_history, user_prompt)
+        self.stop_waiting_animation()
         if self.verbose:
             print(f"{BLUE}\nREPO QUESTION(S)")
             for repo, question in repo_questions.items():
@@ -157,8 +172,7 @@ class PyHCChat:
         repo_answers = {}
         for repo, repo_question in repo_questions.items():
             qa = self.bots[repo].get_qa_chain()
-            # Change "Thinking..." animation to "Searching {repo} contents..."
-            self.stop_waiting_animation()
+            # Start "Searching {repo} contents..."
             self.start_waiting_animation(f'Searching {repo} contents')
             # Get helper bot answer
             result = qa({"question": repo_question, "chat_history": self.chat_history})  # TODO: does it need chat_history? Or should we one-shot prompt?
