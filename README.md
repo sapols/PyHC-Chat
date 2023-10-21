@@ -6,7 +6,7 @@ Explore and ask questions about the [Python in Heliophysics Community](https://p
 
 ## Demo
 
-[![PyHC-Chat demo video](https://img.youtube.com/vi/cSyGBoRjXhg/0.jpg)](https://www.youtube.com/watch?v=cSyGBoRjXhg)
+[![PyHC-Chat demo video](https://img.youtube.com/vi/pLR5zKp6jC4/0.jpg)](https://www.youtube.com/watch?v=pLR5zKp6jC4)
 
 ## Prerequisites
 
