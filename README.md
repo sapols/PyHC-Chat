@@ -4,6 +4,10 @@ Explore and ask questions about the [Python in Heliophysics Community](https://p
 
 [![PyHC-Chat-Diagram.png](https://i.postimg.cc/Vk9593FF/Py-HC-Chat-Diagram.png)](https://postimg.cc/sMXVsHqB)
 
+## Demo
+
+[![PyHC-Chat demo video](https://img.youtube.com/vi/XB8oJYH1TAs/0.jpg)](https://www.youtube.com/watch?v=XB8oJYH1TAs)
+
 ## Prerequisites
 
 - OpenAI API key, set in the environment variable `OPENAI_API_KEY`
